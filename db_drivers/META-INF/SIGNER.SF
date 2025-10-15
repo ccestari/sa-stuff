@@ -1,0 +1,54 @@
+Signature-Version: 1.0
+Created-By: 17.0.16 (Amazon.com Inc.)
+SHA-256-Digest-Manifest: F3cyI5cusTvz4AUpysKFGPl2aDgQ45BqbGNw4rPbi7k=
+SHA-256-Digest-Manifest-Main-Attributes: jgijDBNS3AkS42C+TkDqZvQ2fQTeNA0
+ wUYDkn7bEJOY=
+
+Name: httpclient-4.5.14.jar
+SHA-256-Digest: iK8qOuY1+PofOwA3KYE93+6Sqp/qHDvUKIddI6JoFus=
+
+Name: joda-time-2.12.7.jar
+SHA-256-Digest: raet9emRhLWyWvYLXM07ci5ksw/Z4z2D8O1Wd0lSKqg=
+
+Name: jsoup-1.16.1.jar
+SHA-256-Digest: si6xZUltLTcwkqtVVq29PCjEArVOfzvKZDTgNhcDc30=
+
+Name: aws-java-sdk-redshiftserverless-1.12.731.jar
+SHA-256-Digest: YZLpO0D05jOZbnl7D/3bJqdpjm6jZB68CBYK6SOfDqI=
+
+Name: commons-codec-1.15.jar
+SHA-256-Digest: RdYxequ9ge2sRru7PUVRe0ZC/jF9qwL3kcxIQKO8Vsg=
+
+Name: aws-java-sdk-ssooidc-1.12.731.jar
+SHA-256-Digest: qpEq7AGJImC0CTkqnKx4Gr0c7PjyRFFKwh94GOL+fpM=
+
+Name: aws-java-sdk-core-1.12.731.jar
+SHA-256-Digest: ZLNgLwDjaWzHYDVS/4efCzdF2jodjrUMOCF3WR6J9KM=
+
+Name: commons-logging-1.2.jar
+SHA-256-Digest: HyM5+ubNAjcunyeYnUVn3GE72n/eGXTDLUztyERyiXk=
+
+Name: httpcore-4.4.16.jar
+SHA-256-Digest: EO3JueQYVffxr5pLAZi4a6IaNtX6nYOClbJPuLyGpMY=
+
+Name: aws-java-sdk-redshift-1.12.731.jar
+SHA-256-Digest: /Db7VTDK9gVe4MGIvJDKPhS6JVAIy1Kp1xIcCZbvSbs=
+
+Name: jackson-core-2.16.0.jar
+SHA-256-Digest: kOmN63oUCu+2NArXTeI9hxjQQ5avEKwOEmH9R2RGecw=
+
+Name: redshift-jdbc42-2.1.0.34.jar
+SHA-256-Digest: vCmXhSKDsfBvVuHtVzmdUUxUfMOWk7FCQ4WltgfvmrE=
+
+Name: jackson-annotations-2.16.0.jar
+SHA-256-Digest: BezitC5ffo6qeqYHKQx6ezfOkuVs1PMoYcL2i/NcFcs=
+
+Name: aws-java-sdk-sts-1.12.731.jar
+SHA-256-Digest: s0TiXijpbLLpR6NbBnDAxfvr07TulcIS5H5+axnbbW8=
+
+Name: jackson-dataformat-cbor-2.16.0.jar
+SHA-256-Digest: v5cillLB8oqXgxk0bj+uTXYC2VTO5i1mmFCLDfkrknk=
+
+Name: jackson-databind-2.16.0.jar
+SHA-256-Digest: azbD4Tf1HXaKWPrSVCugUPR4L7cWMDehff0dKxX/pRQ=
+

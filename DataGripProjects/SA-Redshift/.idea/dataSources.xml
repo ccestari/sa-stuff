@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
+    <data-source source="LOCAL" name="Cc@succ123!@server.redshift.amazonaws.com" uuid="b1d7f4bc-b434-4399-bbf4-35324400312c">
+      <driver-ref>redshift</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>com.amazon.redshift.jdbc.Driver</jdbc-driver>
+      <jdbc-url>jdbc:redshift://server.redshift.amazonaws.com:5439/Cc%40succ123%21</jdbc-url>
+      <working-dir>$ProjectFileDir$</working-dir>
+    </data-source>
+    <data-source source="LOCAL" name="db02@edna-prod-dw.cejfjblsis8x.us-east-1.redshift.amazonaws.com" uuid="f1d443e0-991a-43fd-ada1-89d0c2301a37">
+      <driver-ref>redshift</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>com.amazon.redshift.jdbc.Driver</jdbc-driver>
+      <jdbc-url>jdbc:redshift://edna-prod-dw.cejfjblsis8x.us-east-1.redshift.amazonaws.com:5439/db02</jdbc-url>
+      <working-dir>$ProjectFileDir$</working-dir>
+    </data-source>
+    <data-source source="LOCAL" name="Dev Redshift" uuid="3c9ba34c-1ad2-4387-a4c6-cabe45f275b7">
+      <driver-ref>redshift</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>com.amazon.redshift.jdbc.Driver</jdbc-driver>
+      <jdbc-url>jdbc:redshift://edna-dev-dw.cxafwktlbobs.us-east-1.redshift.amazonaws.com:5439/db02</jdbc-url>
+      <working-dir>$ProjectFileDir$</working-dir>
+    </data-source>
+    <data-source source="LOCAL" name="postgres@localhost" uuid="98992fab-fcf9-48af-b4f6-cfba4050d3ad">
+      <driver-ref>postgresql</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>org.postgresql.Driver</jdbc-driver>
+      <jdbc-url>jdbc:postgresql://localhost:5432/postgres</jdbc-url>
+      <working-dir>$ProjectFileDir$</working-dir>
+    </data-source>
+  </component>
+</project>
