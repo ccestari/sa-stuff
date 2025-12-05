@@ -16,8 +16,13 @@ def create_schema():
         config = json.load(f)
     
     # Get passwords from credentials file
-    with open('credentials.yaml') as f:
-        creds = yaml.safe_load(f)
+    try:
+        with open('credentials.yaml') as f:
+            creds = yaml.safe_load(f)
+    except FileNotFoundError:
+        print("❌ credentials.yaml not found in current directory")
+        print("Please copy your credentials.yaml file to this directory")
+        return False
     
     redshift_password = creds['redshift']['password']
     ssh_password = creds['ssh']['password']

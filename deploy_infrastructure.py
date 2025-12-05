@@ -8,21 +8,27 @@ import boto3
 import zipfile
 import io
 import time
+import yaml
 from botocore.exceptions import ClientError
-from setup_credentials import CredentialManager
 
 class InfrastructureDeployer:
     def __init__(self, config_file='config.json'):
         with open(config_file) as f:
             self.config = json.load(f)
         
-        # Initialize credential manager
-        self.cred_manager = CredentialManager()
-        if not self.cred_manager.load_credentials() or not self.cred_manager.are_credentials_valid():
-            raise Exception("AWS credentials not valid. Run: python setup_credentials.py")
+        # Load credentials from credentials.yaml
+        with open('credentials.yaml') as f:
+            creds = yaml.safe_load(f)
+        
+        prod_creds = creds['production']
         
         # Get boto3 session
-        session = self.cred_manager.get_boto3_session()
+        session = boto3.Session(
+            aws_access_key_id=prod_creds['aws_access_key_id'],
+            aws_secret_access_key=prod_creds['aws_secret_access_key'],
+            aws_session_token=prod_creds['aws_session_token'],
+            region_name=self.config['aws']['region']
+        )
         self.iam = session.client('iam')
         self.lambda_client = session.client('lambda')
         self.apigateway = session.client('apigateway')
