@@ -21,6 +21,7 @@
     "source_bucket": "edna-dev-meraki-webhooks",
     "source_prefix": "webhook-data/",
     "source_account": "205372355929",
+    "raw_bucket": "edna-stream-meraki",
     "backup_bucket": "edna-stream-meraki",
     "project_prefix": "meraki-webhook-streaming"
   },
