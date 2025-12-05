@@ -1,0 +1,47 @@
+{
+  "aws": {
+    "region": "us-east-1",
+    "account_id": "309820967897",
+    "sso_start_url": "https://d-9067640efb.awsapps.com/start/#",
+    "sso_region": "us-east-1"
+  },
+  "redshift": {
+    "cluster_arn": "arn:aws:redshift:us-east-1:309820967897:namespace:e32e8f17-2e92-4e59-9bff-33c3cbf38a72",
+    "cluster_endpoint": "edna-prod-dw.cejfjblsis8x.us-east-1.redshift.amazonaws.com",
+    "cluster_port": 5439,
+    "database": "db02",
+    "admin_user": "ccestari",
+    "tunnel_host": "localhost",
+    "tunnel_port": 5439,
+    "target_schema": "edna_stream_meraki",
+    "ssh_host": "44.207.39.121",
+    "ssh_user": "chris.cestari"
+  },
+  "s3": {
+    "source_bucket": "edna-dev-meraki-webhooks",
+    "source_prefix": "webhook-data/",
+    "source_account": "205372355929",
+    "backup_bucket": "edna-stream-meraki",
+    "project_prefix": "meraki-webhook-streaming"
+  },
+  "firehose": {
+    "stream_name": "meraki-redshift-stream",
+    "buffer_size_mb": 5,
+    "buffer_interval_seconds": 300,
+    "retry_duration_seconds": 3600
+  },
+  "lambda": {
+    "function_name": "meraki-webhook-processor",
+    "runtime": "python3.9",
+    "memory_mb": 512,
+    "timeout_seconds": 60
+  },
+  "api_gateway": {
+    "api_name": "meraki-webhook-api",
+    "stage_name": "prod"
+  },
+  "iam": {
+    "firehose_role_name": "MerakiFirehoseRole",
+    "lambda_role_name": "MerakiLambdaRole"
+  }
+}
