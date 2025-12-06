@@ -1,6 +1,6 @@
 # Meraki Webhook Streaming to Redshift
 
-Stream Meraki webhook data to AWS Redshift via API Gateway, Lambda, and Kinesis Firehose.
+Stream Meraki webhook data to AWS Redshift for analytics and monitoring.
 
 ## Architecture
 
@@ -9,128 +9,140 @@ Meraki Dashboard
     ↓ (webhook)
 API Gateway
     ↓
-Lambda (flatten + route)
+Lambda (flatten & store)
     ↓
-    ├→ S3 (raw storage)
-    └→ Firehose → Redshift
+S3 (raw JSON)
+    ↓ (scheduled COPY)
+Redshift
 ```
-
-## Features
-
-- **Flexible Schema**: Single table handles 24+ alert types with nullable columns
-- **Schema Detection**: Automatic detection and alerting for unknown schemas
-- **Raw Storage**: All payloads archived to S3 for audit and reprocessing
-- **Error Handling**: CloudWatch/SNS alerts for unknown schemas and processing errors
-- **Historical Data**: Analyzed 3,336 historical files, ready to import
-- **Cross-Account**: Supports copying data from nonproduction to production
-
-## Alert Types Supported
-
-Based on analysis of 3,336 historical files:
-- Sensor change detected (74% of alerts)
-- Power supply events
-- Motion detection
-- Geofencing events
-- AP status changes
-- Client connections
-- Gateway status
-- And 17+ more types
-
-## Prerequisites
-
-- Python 3.9+
-- AWS CLI configured
-- VPN access (for Redshift via SSH bastion)
-- AWS SSO credentials
 
 ## Quick Start
 
-### 1. Install Dependencies
+### Prerequisites
+- Python 3.9+
+- AWS credentials with access to account 309820967897
+- VPN access to Redshift cluster (for sync script)
 
-```bash
-pip install boto3 psycopg2-binary paramiko==2.12.0 sshtunnel==0.4.0 pyyaml
-```
+### Setup
 
-### 2. Configure Credentials
+1. **Clone and install**
+   ```bash
+   git clone <repo-url>
+   cd meraki-webhook-streaming
+   pip install -r requirements.txt
+   ```
 
-Create `credentials.yaml` (gitignored):
+2. **Configure credentials**
+   ```bash
+   cp credentials.yaml.template credentials.yaml
+   # Edit credentials.yaml with your AWS credentials
+   ```
 
-```yaml
-production:
-  aws_access_key_id: YOUR_KEY
-  aws_secret_access_key: YOUR_SECRET
-  aws_session_token: YOUR_TOKEN
-  account_id: "309820967897"
+3. **Test connection**
+   ```bash
+   python check_s3_data.py
+   ```
 
-nonproduction:
-  aws_access_key_id: YOUR_KEY
-  aws_secret_access_key: YOUR_SECRET
-  aws_session_token: YOUR_TOKEN
-  account_id: "205372355929"
+4. **Start sync** (requires VPN)
+   ```bash
+   python sync_s3_to_redshift.py
+   # Or on macOS/Linux:
+   chmod +x sync_s3_to_redshift.sh
+   ./sync_s3_to_redshift.sh
+   ```
 
-redshift:
-  password: YOUR_REDSHIFT_PASSWORD
+## Key Files
 
-ssh:
-  password: YOUR_SSH_PASSWORD
-```
-
-### 3. Deploy (Must be on VPN)
-
-```bash
-# Setup Redshift schema (requires VPN)
-python setup_redshift_schema.py
-
-# Deploy AWS infrastructure
-python deploy_infrastructure.py
-
-# Test webhook
-python test_webhook.py
-```
-
-### 4. Configure Meraki Dashboard
-
-Use the API Gateway URL from deployment output as your webhook endpoint.
+- `lambda_function.py` - Webhook processor
+- `sync_s3_to_redshift.py` - Automated S3→Redshift sync
+- `setup_redshift_schema.py` - Create Redshift table
+- `test_webhook.py` - Send test webhooks
+- `check_s3_data.py` - Monitor S3 files
+- `check_lambda_logs.py` - View Lambda logs
 
 ## Configuration
 
-See `config.json` for AWS resources:
-- **Database**: db02
-- **Schema**: edna_stream_meraki
+### AWS Resources
+- **API Gateway**: https://db8pogv7q9.execute-api.us-east-1.amazonaws.com/prod/webhook
+- **Lambda**: meraki-webhook-processor
 - **S3 Bucket**: edna-stream-meraki
 - **Redshift**: edna-prod-dw.cejfjblsis8x.us-east-1.redshift.amazonaws.com
+- **Database**: db02
+- **Schema**: edna_stream_meraki
 
-## Scripts
+### Redshift Table
+- **Table**: `edna_stream_meraki.meraki_webhooks`
+- **Columns**: 37 (flexible schema for all alert types)
+- **Views**: `recent_alerts`, `temperature_alerts`
 
-- `setup_redshift_schema.py` - Create Redshift schema (requires VPN)
-- `deploy_infrastructure.py` - Deploy AWS resources
-- `test_webhook.py` - Test webhook endpoint
-- `analyze_historical_data.py` - Analyze historical webhook data
-- `copy_historical_data.py` - Copy 3,336 historical files to production
+## How It Works
 
-## Important Notes
+1. **Meraki sends webhook** to API Gateway
+2. **Lambda receives** and flattens payload
+3. **Lambda stores** raw JSON to S3
+4. **Sync script** runs COPY command every 5 minutes
+5. **Data appears** in Redshift for querying
 
-- **VPN Required**: Must be on VPN to access Redshift via SSH bastion (44.207.39.121)
-- **Credentials Expire**: AWS credentials expire every 30 minutes
-- **Platform**: All scripts work on Windows and macOS
+## Why Not Firehose?
+
+Firehose can't connect to Redshift because the cluster is behind a VPN/bastion. The sync script uses SSH tunnel to access Redshift.
+
+## Monitoring
+
+```bash
+# Check S3 files
+python check_s3_data.py
+
+# Check Lambda logs
+python check_lambda_logs.py
+
+# Test webhook
+python test_webhook.py --count 5
+```
+
+## Querying Data
+
+```sql
+-- Recent webhooks
+SELECT * FROM edna_stream_meraki.recent_alerts LIMIT 10;
+
+-- Temperature alerts
+SELECT * FROM edna_stream_meraki.temperature_alerts 
+WHERE temperature_fahrenheit > 70;
+
+-- Count by device
+SELECT device_name, COUNT(*) 
+FROM edna_stream_meraki.meraki_webhooks 
+GROUP BY device_name;
+```
 
 ## Troubleshooting
 
-### SSH Connection Timeout
-Ensure you're connected to VPN before running `setup_redshift_schema.py`.
-
 ### Credentials Expired
-Update `credentials.yaml` with fresh credentials from AWS SSO.
+AWS credentials expire every 30 minutes. Update `credentials.yaml` with new credentials.
 
-### Unknown Schema Alert
-Check CloudWatch logs for details. Lambda will alert via SNS if configured.
+### No Data in Redshift
+1. Check S3 has files: `python check_s3_data.py`
+2. Check Lambda is running: `python check_lambda_logs.py`
+3. Run sync manually: `python sync_s3_to_redshift.py`
+
+### VPN Required
+The sync script requires VPN access to reach Redshift via bastion host.
 
 ## Documentation
 
-- `CLAUDE_DEPLOYMENT_PROMPT.md` - Detailed deployment guide for Claude AI
-- `config.json` - AWS resource configuration
-- `.gitignore` - Excludes credentials and sensitive files
+- `FINAL_STATUS.md` - Complete system status
+- `CONVERSATION_LOG.md` - Development history
+- `CLAUDE_DEPLOYMENT_PROMPT.md` - Deployment guide
+- `DEPLOYMENT_GUIDE.md` - Detailed setup instructions
 
-## License
+## Security
 
-Internal use only - Success Charter Network
+- Never commit `credentials.yaml`
+- AWS credentials expire every 30 minutes
+- Redshift accessible only via VPN/bastion
+- Raw webhooks stored in S3 for audit
+
+## Support
+
+For issues or questions, see `FINAL_STATUS.md` for troubleshooting steps.

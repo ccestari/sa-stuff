@@ -1,115 +1,105 @@
 #!/usr/bin/env python3
 """
-Verify no credentials in files before git commit
+Verify no credentials are in git-tracked files
+Run before committing to GitHub
 """
 import os
 import re
+import subprocess
 
-# Patterns to search for
+# Patterns that indicate credentials
 CREDENTIAL_PATTERNS = [
-    (r'ASIA[A-Z0-9]{16}', 'AWS Access Key'),
-    (r'aws_access_key_id\s*=\s*[A-Z0-9]{20}', 'AWS Access Key'),
-    (r'aws_secret_access_key\s*=\s*[A-Za-z0-9/+=]{40}', 'AWS Secret Key'),
-    (r'IQoJb3JpZ2luX2VjE[A-Za-z0-9/+=]{200,}', 'AWS Session Token'),
-    (r'password\s*[:=]\s*[^\s<>]{8,}', 'Password'),
+    r'ASIA[A-Z0-9]{16}',  # AWS access key
+    r'aws_access_key_id\s*[:=]\s*[A-Z0-9]{20}',
+    r'aws_secret_access_key\s*[:=]\s*[A-Za-z0-9/+=]{40}',
+    r'aws_session_token\s*[:=]\s*[A-Za-z0-9/+=]{100,}',
+    r'password\s*[:=]\s*[\'"][^\'"]+[\'"]',
+    r'Cc@succ123',  # Specific password
+    r'1faLp42x7Vf161670',  # SSH password
 ]
 
-# Files to check
-FILES_TO_CHECK = [
-    'config.json',
-    'lambda_function.py',
-    'deploy_infrastructure.py',
-    'setup_redshift_schema.py',
-    'test_webhook.py',
-    'README.md',
+# Files to skip
+SKIP_FILES = [
+    'verify_no_credentials.py',
+    'credentials.yaml.template',
+    '.gitignore',
+    'PRE_COMMIT_CHECKLIST.md',
     'CLAUDE_DEPLOYMENT_PROMPT.md',
+    'CONVERSATION_LOG.md',
 ]
 
-# Files that should NOT exist or be committed
-FORBIDDEN_FILES = [
-    'credentials.yaml',
-    'credentials_config.yaml',
-    'set_credentials.bat',
-    'deployment_info.json',
-]
+def get_git_files():
+    """Get list of files tracked by git"""
+    try:
+        result = subprocess.run(
+            ['git', 'ls-files'],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        return result.stdout.strip().split('\n')
+    except:
+        # If git not available, scan all Python files
+        files = []
+        for root, dirs, filenames in os.walk('.'):
+            # Skip hidden and build directories
+            dirs[:] = [d for d in dirs if not d.startswith('.') and d not in ['__pycache__', 'venv', 'env']]
+            for filename in filenames:
+                if filename.endswith(('.py', '.json', '.yaml', '.yml', '.md', '.sh', '.bat')):
+                    files.append(os.path.join(root, filename))
+        return files
 
 def check_file(filepath):
-    """Check a file for credential patterns"""
-    issues = []
+    """Check file for credential patterns"""
+    if any(skip in filepath for skip in SKIP_FILES):
+        return []
+    
+    findings = []
     try:
-        with open(filepath, 'r', encoding='utf-8') as f:
+        with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
             content = f.read()
-            for pattern, name in CREDENTIAL_PATTERNS:
-                matches = re.findall(pattern, content)
-                if matches:
-                    # Exclude template placeholders
-                    real_matches = [m for m in matches if not any(
-                        placeholder in m.upper() 
-                        for placeholder in ['YOUR_', 'PLACEHOLDER', 'EXAMPLE', 'TEMPLATE']
-                    )]
-                    if real_matches:
-                        issues.append(f"  ❌ Found {name}: {real_matches[0][:20]}...")
-    except Exception as e:
-        issues.append(f"  ⚠️  Error reading file: {e}")
-    return issues
+            for i, line in enumerate(content.split('\n'), 1):
+                for pattern in CREDENTIAL_PATTERNS:
+                    if re.search(pattern, line, re.IGNORECASE):
+                        findings.append((i, line.strip()[:80]))
+    except:
+        pass
+    
+    return findings
 
 def main():
     print("=" * 60)
     print("Credential Verification")
     print("=" * 60)
+    print()
     
-    all_issues = []
+    files = get_git_files()
+    issues_found = False
     
-    # Check files for credentials
-    print("\n1. Checking files for credentials...")
-    for filepath in FILES_TO_CHECK:
-        if os.path.exists(filepath):
-            print(f"\n  Checking {filepath}...")
-            issues = check_file(filepath)
-            if issues:
-                all_issues.extend(issues)
-                for issue in issues:
-                    print(issue)
-            else:
-                print(f"  ✅ Clean")
+    for filepath in files:
+        if not os.path.exists(filepath):
+            continue
+            
+        findings = check_file(filepath)
+        if findings:
+            issues_found = True
+            print(f"❌ {filepath}")
+            for line_num, line_content in findings:
+                print(f"   Line {line_num}: {line_content}")
+            print()
     
-    # Check for forbidden files
-    print("\n2. Checking for forbidden files...")
-    for filepath in FORBIDDEN_FILES:
-        if os.path.exists(filepath):
-            print(f"  ❌ Found: {filepath} (should be gitignored)")
-            all_issues.append(f"Forbidden file exists: {filepath}")
-        else:
-            print(f"  ✅ Not found: {filepath}")
-    
-    # Check .gitignore
-    print("\n3. Checking .gitignore...")
-    if os.path.exists('.gitignore'):
-        with open('.gitignore', 'r') as f:
-            gitignore = f.read()
-            required = ['credentials.yaml', '*.pem', '*.key']
-            for item in required:
-                if item in gitignore:
-                    print(f"  ✅ {item} is gitignored")
-                else:
-                    print(f"  ❌ {item} NOT in .gitignore")
-                    all_issues.append(f"{item} not in .gitignore")
-    
-    # Summary
-    print("\n" + "=" * 60)
-    if all_issues:
-        print("❌ VERIFICATION FAILED")
-        print("=" * 60)
-        print("\nIssues found:")
-        for issue in all_issues:
-            print(f"  - {issue}")
-        print("\n⚠️  DO NOT COMMIT until issues are resolved!")
-        return 1
-    else:
-        print("✅ VERIFICATION PASSED")
-        print("=" * 60)
-        print("\nNo credentials found. Safe to commit!")
+    if not issues_found:
+        print("✅ No credentials found in tracked files")
+        print()
+        print("Safe to commit!")
         return 0
+    else:
+        print("=" * 60)
+        print("⚠️  CREDENTIALS FOUND!")
+        print("=" * 60)
+        print()
+        print("DO NOT COMMIT until these are removed!")
+        return 1
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     exit(main())

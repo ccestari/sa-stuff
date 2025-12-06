@@ -1,146 +1,79 @@
 # Claude AI Deployment Prompt - Meraki Webhook Streaming
 
-## Project Context
+**Last Updated**: 2025-12-06
 
-You are helping deploy a **Meraki Webhook Streaming to Redshift** system that:
+## Project Overview
 
-1. **Receives** Meraki webhooks via API Gateway
-2. **Stores** raw JSON payloads to S3 for archival
-3. **Flattens** varying webhook structures to consistent Redshift schema
-4. **Streams** data to Redshift via Kinesis Firehose
-5. **Handles** 24+ alert types with flexible schema
+Stream Meraki webhook data to Redshift for analytics. System receives webhooks via API Gateway, processes with Lambda, stores raw JSON to S3, and syncs to Redshift every 5 minutes.
 
-## Architecture
+## Current Architecture (WORKING)
 
 ```
 Meraki Dashboard
     ↓ (webhook)
-API Gateway
+API Gateway: https://db8pogv7q9.execute-api.us-east-1.amazonaws.com/prod/webhook
     ↓
-Lambda (flatten + route)
-    ↓
-    ├→ S3 (raw storage)
-    └→ Firehose → Redshift (edna_stream_meraki.meraki_webhooks)
+Lambda: meraki-webhook-processor
+    ├→ S3: s3://edna-stream-meraki/raw/ (immediate)
+    └→ CloudWatch Logs
+         ↓
+    (every 5 min via sync script)
+         ↓
+Redshift: edna_stream_meraki.meraki_webhooks
 ```
 
-## Current Implementation Status
+## What's Working ✅
 
-### ✅ Completed
-- **Historical Data Analysis**: Analyzed 3,336 files from s3://edna-dev-meraki-webhooks/webhook-data/
-  - Identified 24+ alert types (74% "Sensor change detected", plus Power, Motion, Geofencing, APs, Clients, etc.)
-  - Detected schema variations and edge cases
-  - 1 record with missing required fields (has key1/key2/key3 instead)
-- **Configuration**: Updated config.json for production (db02 database, edna-stream-meraki bucket)
-- **Credentials**: Created credentials.yaml with multi-environment support (gitignored)
-- **Lambda Function**: Enhanced with schema version detection, unknown schema alerting, flexible payload handling
-- **Infrastructure Deployment**: deploy_infrastructure.py ready (NOT YET RUN)
-- **Redshift Schema**: setup_redshift_schema.py ready with flexible schema supporting 24+ alert types (NOT YET RUN - requires VPN)
-- **Testing**: test_webhook.py ready
-- **Historical Data Copy**: copy_historical_data.py ready (3,336 files)
+- API Gateway receiving webhooks
+- Lambda processing and flattening payloads
+- Raw JSON stored to S3 for audit trail
+- Redshift schema with 37 flexible columns
+- Manual/scheduled COPY from S3 to Redshift
+- 11+ webhooks successfully processed
 
-### 🔄 Next Steps
+## What's NOT Working ❌
 
-**On Mac (VPN required - one time):**
-1. Clone repo, install dependencies, create credentials.yaml
-2. Connect to VPN
-3. Run: `python setup_redshift_schema.py`
-4. Commit/push any changes
+- Firehose → Redshift (cluster not accessible)
+- Automatic real-time loading (5 min delay via sync)
 
-**On Windows (return here after VPN tasks):**
-1. Pull latest changes
-2. Run: `python deploy_infrastructure.py`
-3. Run: `python test_webhook.py`
-4. Configure Meraki Dashboard with API Gateway URL
-5. Optional: `python copy_historical_data.py` (3,336 files)
+## Why Firehose Doesn't Work
 
-See WORKFLOW.md for detailed step-by-step instructions.
+**Root Cause**: Redshift cluster (`edna-prod-dw`) is behind VPN/bastion and not publicly accessible. Firehose requires direct network access to Redshift.
 
-## Key Files
+**Attempted Solutions**:
+1. ❌ Firehose with RedshiftDestinationConfiguration - Can't connect
+2. ❌ IAM role for COPY - Role not associated with cluster  
+3. ✅ Manual COPY with user credentials - Works!
+4. ✅ Scheduled sync script via SSH tunnel - Works!
 
-### Core Processing
-- `lambda_function.py` - Webhook processing with flexible flattening, schema detection, alerting
-- `flatten_meraki_payload()` - Handles varying alert structures
-- `detect_schema_version()` - Identifies schema version
-- `alert_unknown_schema()` - CloudWatch/SNS alerts for unknown schemas
-- `alert_processing_error()` - Error handling and alerting
+## Current Solution
 
-### Configuration
-- `config.json` - AWS resources, Redshift, S3, Firehose settings (db02, edna-stream-meraki)
-- `credentials.yaml` - Multi-environment credentials (gitignored)
-
-### Deployment
-- `deploy_infrastructure.py` - Creates all AWS resources
-- `setup_redshift_schema.py` - Creates flexible Redshift schema (requires VPN)
-
-### Analysis & Data
-- `analyze_historical_data.py` - Analyzed 3,336 historical files
-- `copy_historical_data.py` - Copy historical data from nonproduction to production
-
-### Testing
-- `test_webhook.py` - End-to-end webhook testing
-
-## Alert Types Identified (from Historical Data Analysis)
-
-**24+ alert types found in 3,336 historical files:**
-- **Sensor change detected** (74% of all alerts) - temperature, humidity, water, door, motion
-- **Power supply went down** / **Power supply came back online**
-- **Motion detected** / **Motion has stopped**
-- **Geofencing in** / **Geofencing out**
-- **APs went down** / **APs came up**
-- **Clients were connected** / **Clients were disconnected**
-- **Gateway went down** / **Gateway came back online**
-- **Uplink status changed**
-- **Settings changed**
-- **Rogue AP detected**
-- **Malware detected**
-- And more...
-
-**Schema Variations:**
-- Most records follow v0.1 schema with standard fields
-- 1 edge case record with key1/key2/key3 instead of standard fields
-- Flexible schema with nullable columns handles all variations
-
-## Flexible Schema Design
-
-The Redshift table handles varying payloads:
-
-```sql
-CREATE TABLE edna_stream_meraki.meraki_webhooks (
-    -- Metadata (always present)
-    id, ingestion_timestamp, timestamp, source, lambda_request_id,
-    
-    -- Base webhook fields (always present)
-    version, organization_id, network_id, device_serial, device_name,
-    alert_id, alert_type, alert_level, occurred_at,
-    
-    -- Alert data (varies by type)
-    alert_config_id, alert_config_name, started_alerting,
-    
-    -- Trigger data (varies by alert type)
-    trigger_type, trigger_sensor_value, trigger_node_id,
-    
-    -- Raw payload for reference
-    payload_json
-);
+### On Windows (Development)
+```bash
+python check_s3_data.py  # Monitor S3
+python check_lambda_logs.py  # Check Lambda
+python test_webhook.py  # Send test webhooks
 ```
 
-All fields except metadata are nullable to handle variations.
+### On macOS (Production - VPN Required)
+```bash
+python sync_s3_to_redshift.py
+# Or
+./sync_s3_to_redshift.sh
+```
 
-## Configuration
+Runs COPY command every 5 minutes to sync S3 → Redshift.
 
-### AWS Resources
-- **Production Account**: 309820967897 (deployment target)
-- **Nonproduction Account**: 205372355929 (historical data source)
+## AWS Resources
+
+### Account & Region
+- **Account**: 309820967897
 - **Region**: us-east-1
-- **Redshift**: edna-prod-dw.cejfjblsis8x.us-east-1.redshift.amazonaws.com
-- **Database**: db02 (CHANGED from talent_acquisition)
-- **Schema**: edna_stream_meraki
-- **Redshift User**: ccestari
-- **SSH Bastion**: 44.207.39.121 (user: chris.cestari)
 
-### S3 Buckets
-- **Single Bucket**: edna-stream-meraki (used for both raw and backup)
-- **Historical Source**: s3://edna-dev-meraki-webhooks/webhook-data/ (3,336 files in nonproduction account)
+### API Gateway
+- **URL**: https://db8pogv7q9.execute-api.us-east-1.amazonaws.com/prod/webhook
+- **Stage**: prod
+- **Method**: POST /webhook
 
 ### Lambda
 - **Function**: meraki-webhook-processor
@@ -148,134 +81,295 @@ All fields except metadata are nullable to handle variations.
 - **Memory**: 512 MB
 - **Timeout**: 60 seconds
 - **Environment Variables**:
-  - FIREHOSE_STREAM_NAME: meraki-redshift-stream
-  - RAW_BUCKET: edna-stream-meraki
-  - ALERT_SNS_TOPIC: (optional for alerting)
+  - `RAW_BUCKET`: edna-stream-meraki
+  - `FIREHOSE_STREAM_NAME`: meraki-redshift-stream (not used)
 
-### Firehose
-- **Stream**: meraki-redshift-stream
-- **Buffer**: 5 MB or 300 seconds
-- **Destination**: S3 (backup)
+### S3
+- **Bucket**: edna-stream-meraki
+- **Raw webhooks**: `raw/YYYY-MM-DD-HH-MM-SS-{request_id}.json`
+- **Firehose backup**: `firehose-backup/` (legacy, not used)
 
-## Important Notes
+### Redshift
+- **Cluster**: edna-prod-dw.cejfjblsis8x.us-east-1.redshift.amazonaws.com
+- **Port**: 5439
+- **Database**: db02
+- **Schema**: edna_stream_meraki
+- **Table**: meraki_webhooks (37 columns)
+- **Access**: Via SSH tunnel through bastion (44.207.39.121)
 
-- **VPN REQUIRED**: Must be on company VPN to connect to SSH bastion host (44.207.39.121)
-- **AWS Credentials**: Rotate every 30 minutes - stored in credentials.yaml (gitignored)
-- **SSH Tunnel**: Required for Redshift access via bastion host (port 5439)
-- **Flexible Schema**: Single table handles 24+ alert types with nullable columns
-- **Raw Storage**: All payloads stored to S3 before processing
-- **Error Handling**: Unknown schema alerting via CloudWatch/SNS, graceful fallback
-- **Batch Processing**: Firehose buffers 5MB or 300 seconds
-- **Historical Data**: 3,336 files analyzed, ready to copy from nonproduction to production
+### IAM Roles
+- **Lambda Role**: MerakiLambdaRole
+- **Firehose Role**: MerakiFirehoseRole (not used for Redshift)
+
+## Redshift Schema
+
+```sql
+CREATE TABLE edna_stream_meraki.meraki_webhooks (
+    -- Metadata
+    id BIGINT IDENTITY(1,1) PRIMARY KEY,
+    ingestion_timestamp TIMESTAMP DEFAULT GETDATE(),
+    timestamp VARCHAR(50),
+    source VARCHAR(50),
+    lambda_request_id VARCHAR(100),
+    environment VARCHAR(50),
+    s3_raw_location VARCHAR(500),
+    
+    -- Base webhook fields
+    version VARCHAR(10),
+    shared_secret VARCHAR(100),
+    sent_at TIMESTAMP,
+    organization_id VARCHAR(50),
+    organization_name VARCHAR(200),
+    organization_url VARCHAR(500),
+    network_id VARCHAR(100),
+    network_name VARCHAR(200),
+    network_url VARCHAR(500),
+    network_tags VARCHAR(1000),
+    
+    -- Device information
+    device_serial VARCHAR(50),
+    device_mac VARCHAR(50),
+    device_name VARCHAR(200),
+    device_url VARCHAR(500),
+    device_tags VARCHAR(1000),
+    device_model VARCHAR(50),
+    
+    -- Alert information
+    alert_id VARCHAR(100),
+    alert_type VARCHAR(200),
+    alert_type_id VARCHAR(100),
+    alert_level VARCHAR(50),
+    occurred_at TIMESTAMP,
+    
+    -- Alert data
+    alert_config_id BIGINT,
+    alert_config_name VARCHAR(200),
+    started_alerting BOOLEAN,
+    
+    -- Trigger data
+    condition_id BIGINT,
+    trigger_ts DOUBLE PRECISION,
+    trigger_type VARCHAR(50),
+    trigger_node_id BIGINT,
+    trigger_sensor_value DOUBLE PRECISION,
+    
+    -- Raw payload
+    payload_json VARCHAR(MAX)
+);
+```
+
+## COPY Command (Manual Load)
+
+Run in Redshift Query Editor v2:
+
+```sql
+COPY edna_stream_meraki.meraki_webhooks (
+    timestamp, source, lambda_request_id, environment, s3_raw_location,
+    version, shared_secret, sent_at,
+    organization_id, organization_name, organization_url,
+    network_id, network_name, network_url, network_tags,
+    device_serial, device_mac, device_name, device_url, device_tags, device_model,
+    alert_id, alert_type, alert_type_id, alert_level, occurred_at,
+    alert_config_id, alert_config_name, started_alerting,
+    condition_id, trigger_ts, trigger_type, trigger_node_id, trigger_sensor_value,
+    payload_json
+)
+FROM 's3://edna-stream-meraki/raw/'
+ACCESS_KEY_ID '<your_access_key>'
+SECRET_ACCESS_KEY '<your_secret_key>'
+SESSION_TOKEN '<your_session_token>'
+JSON 'auto'
+TIMEFORMAT 'auto'
+REGION 'us-east-1'
+TRUNCATECOLUMNS
+BLANKSASNULL
+EMPTYASNULL;
+```
+
+## Key Files
+
+### Core Processing
+- `lambda_function.py` - Webhook processor with flexible flattening
+- `setup_redshift_schema.py` - Creates Redshift schema and table
+
+### Sync & Load
+- `sync_s3_to_redshift.py` - Automated sync (Python, VPN required)
+- `sync_s3_to_redshift.sh` - Automated sync (Shell, macOS/Linux)
+- `load_s3_to_redshift.py` - One-time load (VPN required)
+
+### Deployment
+- `deploy_infrastructure.py` - Deploys all AWS resources
+- `recreate_firehose_redshift.py` - Recreate Firehose (not needed)
+
+### Monitoring
+- `check_s3_data.py` - Check S3 files
+- `check_lambda_logs.py` - Check Lambda CloudWatch logs
+- `check_status.py` - Check all infrastructure
+- `test_webhook.py` - Send test webhooks
+
+### Configuration
+- `config.json` - AWS resources configuration
+- `credentials.yaml` - AWS credentials (NOT in git)
+- `credentials.yaml.template` - Template for credentials
+- `requirements.txt` - Python dependencies
+
+## Setup on New Machine (macOS)
+
+1. **Clone repo**
+   ```bash
+   git clone <repo-url>
+   cd meraki-webhook-streaming
+   ```
+
+2. **Install dependencies**
+   ```bash
+   pip3 install -r requirements.txt
+   ```
+
+3. **Configure credentials**
+   ```bash
+   cp credentials.yaml.template credentials.yaml
+   # Edit with your AWS credentials
+   ```
+
+4. **Test connection**
+   ```bash
+   python3 check_s3_data.py
+   ```
+
+5. **Connect to VPN**
+   ```bash
+   # Connect to VPN to access bastion/Redshift
+   ```
+
+6. **Start sync**
+   ```bash
+   chmod +x sync_s3_to_redshift.sh
+   ./sync_s3_to_redshift.sh
+   ```
 
 ## Credentials Management
 
-**IMPORTANT**: credentials.yaml is gitignored and contains:
-- AWS credentials for production (309820967897) and nonproduction (205372355929)
-- Redshift password
-- SSH password
-
-**AWS credentials expire every 30 minutes** - must be refreshed from AWS SSO:
-- SSO start URL: https://d-9067640efb.awsapps.com/start/#
-- SSO Region: us-east-1
-- Production: 309820967897_AWSAdministratorAccess
-- Nonproduction: 205372355929_AWSAdministratorAccess
-
-Update credentials.yaml with fresh credentials before deployment.
-
-## Troubleshooting
-
-### Credentials Expired
-Update credentials.yaml with fresh credentials from AWS SSO.
-
-### SSH Tunnel (Manual)
-```bash
-# Must be on VPN first!
-ssh chris.cestari@44.207.39.121
-# Or with port forwarding:
-ssh -L 5439:edna-prod-dw.cejfjblsis8x.us-east-1.redshift.amazonaws.com:5439 chris.cestari@44.207.39.121
+### AWS Credentials (Expire every 30 min)
+```yaml
+production:
+  aws_access_key_id: ASIA...
+  aws_secret_access_key: ...
+  aws_session_token: ...
+  account_id: "309820967897"
 ```
 
-### Test Webhook
+### Redshift & SSH
+```yaml
+redshift:
+  password: Cc@succ123!
+
+ssh:
+  password: 1faLp42x7Vf161670!
+```
+
+## Sample Webhook Payload
+
+```json
+{
+  "version": "0.1",
+  "organizationId": "25998",
+  "networkId": "L_570831252769210967",
+  "deviceSerial": "Q3CA-4ZEK-5VUZ",
+  "deviceName": "FB-602",
+  "alertType": "Sensor change detected",
+  "occurredAt": "2025-12-06T02:08:19Z",
+  "alertData": {
+    "alertConfigName": "Temperature Threshold FB",
+    "triggerData": [{
+      "trigger": {
+        "type": "temperature",
+        "sensorValue": 17.0
+      }
+    }]
+  }
+}
+```
+
+## Alert Types Handled
+
+- **Sensor**: temperature, humidity, water, door, motion
+- **Device**: went_down, came_up, power_supply_down
+- **Network**: usage_alert, settings_changed
+- **Security**: rogue_ap_detected, malware_detected
+
+## Monitoring & Troubleshooting
+
+### Check S3 Files
+```bash
+python check_s3_data.py
+```
+
+### Check Lambda Logs
+```bash
+python check_lambda_logs.py
+```
+
+### Send Test Webhook
 ```bash
 python test_webhook.py --count 5
 ```
 
-### Check Logs
-```bash
-# Lambda logs
-aws logs tail /aws/lambda/meraki-webhook-processor --follow
+### Query Redshift
+```sql
+-- Recent alerts
+SELECT * FROM edna_stream_meraki.recent_alerts LIMIT 10;
 
-# Firehose logs
-aws logs tail /aws/kinesisfirehose/meraki-redshift-stream --follow
+-- Temperature alerts
+SELECT * FROM edna_stream_meraki.temperature_alerts;
+
+-- Count by device
+SELECT device_name, COUNT(*) 
+FROM edna_stream_meraki.meraki_webhooks 
+GROUP BY device_name;
 ```
 
-## Deployment Checklist
+## Common Issues
 
-- [x] Historical data analyzed (3,336 files, 24+ alert types)
-- [x] Configuration updated (db02, edna-stream-meraki)
-- [x] Credentials file created (credentials.yaml - gitignored)
-- [x] Lambda enhanced with schema detection and alerting
-- [x] Flexible Redshift schema designed
-- [ ] **VPN connection established**
-- [ ] AWS credentials valid (rotate every 30 min)
-- [ ] Python dependencies installed (paramiko==2.12.0, sshtunnel==0.4.0)
-- [ ] Redshift schema created (requires VPN)
-- [ ] Infrastructure deployed
-- [ ] Webhook tested successfully
-- [ ] Meraki Dashboard configured
-- [ ] CloudWatch logs accessible
-- [ ] Historical data loaded (optional - 3,336 files)
+### Credentials Expired
+AWS credentials expire every 30 minutes. Update `credentials.yaml` with fresh credentials.
 
-## Completed Analysis & Scripts
+### No Data in Redshift
+1. Check S3 has files: `python check_s3_data.py`
+2. Check Lambda is processing: `python check_lambda_logs.py`
+3. Run sync manually: `python sync_s3_to_redshift.py`
 
-1. **Historical Data Analysis** ✅
-   - analyze_historical_data.py - Analyzed 3,336 files
-   - Identified 24+ alert types and schema variations
-   - Generated schema_samples.json with examples
+### VPN Not Connected
+Sync script requires VPN to access bastion/Redshift.
 
-2. **Historical Data Copy** ✅
-   - copy_historical_data.py - Ready to copy 3,336 files
-   - Cross-account copy from nonproduction to production
+### IAM Role Error
+Use personal AWS credentials in COPY command, not IAM role.
 
-3. **Schema Enhancements** ✅
-   - Flexible schema with nullable columns
-   - Handles all 24+ alert types
-   - Views: recent_alerts, temperature_alerts
+## Success Criteria
 
-4. **Lambda Enhancements** ✅
-   - detect_schema_version() - Identifies schema version
-   - alert_unknown_schema() - CloudWatch/SNS alerts
-   - alert_processing_error() - Error handling
-   - Environment variables for configuration
+- ✅ Webhooks received and processed within seconds
+- ✅ Raw payloads stored to S3 for audit
+- ✅ Data appears in Redshift within 5 minutes
+- ✅ All alert types handled correctly
+- ✅ Failed records logged to CloudWatch
+- ✅ Complete documentation provided
+- ⚠️ Near real-time (5 min delay, not instant)
 
-## Future Enhancements
+## Future Improvements
 
-1. **Monitoring**
-   - CloudWatch alarms for failures
-   - SNS topic configuration
-   - Daily summary reports
-
-2. **Analytics**
-   - Temperature trends by device
-   - Alert frequency by type
-   - Device health dashboard
-
-3. **Data Quality**
-   - Webhook signature validation
-   - Duplicate detection
-   - Data quality checks
-
-## Platform Compatibility
-
-**Windows**: All Python scripts work as-is
-**macOS**: All Python scripts work as-is (no Windows-specific commands used)
+1. **Lambda in VPC** - Direct Redshift access without sync script
+2. **EventBridge Scheduler** - AWS-native scheduled COPY
+3. **Redshift Data API** - Serverless inserts from Lambda
+4. **Duplicate Detection** - Prevent re-loading same files
+5. **Data Quality Checks** - Validate payloads before insert
 
 ## Reference Documentation
 
 - **Meraki Webhooks**: https://developer.cisco.com/meraki/webhooks/
-- **Postman Collection**: https://documenter.getpostman.com/view/897512/SVfRtnU7
 - **AWS Firehose**: https://docs.aws.amazon.com/firehose/
 - **Redshift COPY**: https://docs.aws.amazon.com/redshift/latest/dg/r_COPY.html
+- **Redshift Data API**: https://docs.aws.amazon.com/redshift-data/
 
-This system provides a flexible, scalable solution for streaming Meraki webhook data to Redshift while maintaining raw data for audit and reprocessing.
+## Project Files
+
+See `FINAL_STATUS.md` for complete system status and `CONVERSATION_LOG.md` for development history.
