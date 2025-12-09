@@ -20,22 +20,22 @@ Updated the Meraki webhook streaming project with production configuration, flex
 **New file: credentials.yaml** (gitignored)
 ```yaml
 production:
-  aws_access_key_id: ASIAUQIWEZPMQG44P5YB
+  aws_access_key_id: ASIA...
   aws_secret_access_key: [hidden]
   aws_session_token: [hidden]
   account_id: "309820967897"
 
 nonproduction:
-  aws_access_key_id: ASIAS7UJFOVMUO5T5TP3
+  aws_access_key_id: ASIA...
   aws_secret_access_key: [hidden]
   aws_session_token: [hidden]
   account_id: "205372355929"
 
 redshift:
-  password: Cc@succ123!
+  password: YOUR_PASSWORD
 
 ssh:
-  password: 1faLp42x7Vf161670!
+  password: YOUR_SSH_PASSWORD
 ```
 
 ### 3. Lambda Enhancements

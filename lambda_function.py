@@ -129,7 +129,7 @@ def process_api_gateway_webhook(event, context):
     """Process webhook from API Gateway"""
     try:
         s3_client = boto3.client('s3')
-        firehose_client = boto3.client('firehose')
+        redshift_data = boto3.client('redshift-data')
         
         # Parse webhook body
         body = json.loads(event.get('body', '{}'))
@@ -138,7 +138,7 @@ def process_api_gateway_webhook(event, context):
         webhook_data = {
             'timestamp': datetime.utcnow().isoformat() + 'Z',
             'source': 'meraki_webhook',
-            'lambda_request_id': context.request_id,
+            'lambda_request_id': context.aws_request_id,
             'environment': 'production',
             'payload': body
         }
@@ -151,7 +151,7 @@ def process_api_gateway_webhook(event, context):
         try:
             raw_bucket = os.environ.get('RAW_BUCKET', 'edna-stream-meraki')
             timestamp = datetime.utcnow().strftime('%Y-%m-%d-%H-%M-%S')
-            s3_key = f"raw/{timestamp}-{context.request_id}.json"
+            s3_key = f"raw/{timestamp}-{context.aws_request_id}.json"
             
             s3_client.put_object(
                 Bucket=raw_bucket,
@@ -189,7 +189,7 @@ def process_api_gateway_webhook(event, context):
             'body': json.dumps({
                 'status': 'success',
                 'message': 'Webhook received and processed',
-                'request_id': context.request_id
+                'request_id': context.aws_request_id
             })
         }
         
