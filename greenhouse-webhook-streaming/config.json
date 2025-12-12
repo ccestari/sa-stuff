@@ -1,0 +1,33 @@
+{
+  "aws": {
+    "region": "us-east-1",
+    "account_id": "309820967897"
+  },
+  "redshift": {
+    "cluster_endpoint": "edna-prod-dw.cejfjblsis8x.us-east-1.redshift.amazonaws.com",
+    "cluster_port": 5439,
+    "database": "db02",
+    "admin_user": "dba02",
+    "target_schema": "talent_acquisition.edna_stream_greenhouse"
+  },
+  "s3": {
+    "backup_bucket_nonprod": "edna-dev-greenhouse-webhooks",
+    "backup_bucket_prod": "greenhouse-webhooks-backup-309820967897"
+  },
+  "lambda": {
+    "function_name": "greenhouse-webhook-processor",
+    "runtime": "python3.11",
+    "memory_mb": 256,
+    "timeout_seconds": 60
+  },
+  "api_gateway": {
+    "endpoint": "https://kac177dcb8.execute-api.us-east-1.amazonaws.com/prod/webhook"
+  },
+  "sqs": {
+    "queue_name": "greenhouse-flattened-records",
+    "queue_url": "https://sqs.us-east-1.amazonaws.com/309820967897/greenhouse-flattened-records"
+  },
+  "iam": {
+    "lambda_role_name": "greenhouse-webhook-processor-role"
+  }
+}

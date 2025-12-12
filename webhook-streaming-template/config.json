@@ -1,0 +1,31 @@
+{
+  "aws": {
+    "region": "us-east-1",
+    "account_id": "YOUR_ACCOUNT_ID"
+  },
+  "lambda": {
+    "function_name": "YOUR-webhook-processor",
+    "runtime": "python3.11",
+    "memory_mb": 256,
+    "timeout_seconds": 60
+  },
+  "s3": {
+    "raw_bucket": "YOUR-webhooks-raw",
+    "backup_bucket": "YOUR-webhooks-backup"
+  },
+  "firehose": {
+    "stream_name": "YOUR-redshift-stream",
+    "buffer_size_mb": 5,
+    "buffer_interval_seconds": 300
+  },
+  "api_gateway": {
+    "api_name": "YOUR-webhook-api",
+    "stage_name": "prod"
+  },
+  "redshift": {
+    "cluster_endpoint": "YOUR-cluster.redshift.amazonaws.com",
+    "cluster_port": 5439,
+    "database": "YOUR_DATABASE",
+    "schema": "YOUR_SCHEMA"
+  }
+}

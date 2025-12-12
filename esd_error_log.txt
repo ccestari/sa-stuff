@@ -1,0 +1,87 @@
+(base) chris.cestari@M739WV0N94 meraki-webhook-streaming % cd /Users/chris.cestari/Documents/GitHub/sa-stuff
+python esd_period_attendance_fetcher.py
+
+🔑 Getting OAuth token...
+✅ Token obtained (expires in 3600s)
+
+📅 Date range: 1900-01-01 to 2025-12-10
+
+📚 Fetching schools...
+✅ Found 89 schools
+
+📊 Fetching period attendance (target: 5000 records, page size: 1000)...
+  Fetching school 12549... ⚠️  No records
+  Fetching school 12514... ⚠️  No records
+  Fetching school 12513... ⚠️  No records
+  Fetching school 12560... ⚠️  No records
+  Fetching school 12571... ⚠️  No records
+  Fetching school 12573... ⚠️  No records
+  Fetching school 12515... ⚠️  No records
+  Fetching school 12574... ⚠️  No records
+  Fetching school 12516... ⚠️  No records
+  Fetching school 12575... ⚠️  No records
+  Fetching school 12552... ⚠️  No records
+  Fetching school 12517... ⚠️  No records
+  Fetching school 12577... ⚠️  No records
+  Fetching school 12518... ⚠️  No records
+  Fetching school 12768... ⚠️  No records
+  Fetching school 12912... ⚠️  No records
+  Fetching school 12576... ⚠️  No records
+  Fetching school 12519... ⚠️  No records
+  Fetching school 12520... ⚠️  No records
+  Fetching school 12521... ⚠️  No records
+  Fetching school 12566... ⚠️  No records
+  Fetching school 12522... ⚠️  No records
+  Fetching school 12553... ⚠️  No records
+  Fetching school 12523... ⚠️  No records
+  Fetching school 12524... ⚠️  No records
+  Fetching school 12578... ⚠️  No records
+  Fetching school 12525... ⚠️  No records
+  Fetching school 12526... ⚠️  No records
+  Fetching school 12527... ⚠️  No records
+  Fetching school 12769... ⚠️  No records
+  Fetching school 12528... ⚠️  No records
+  Fetching school 12529... ⚠️  No records
+  Fetching school 12554... ⚠️  No records
+  Fetching school 12555... ⚠️  No records
+  Fetching school 12530... ⚠️  No records
+  Fetching school 12556... ⚠️  No records
+  Fetching school 12557... ⚠️  No records
+  Fetching school 12531... ⚠️  No records
+  Fetching school 12558... ⚠️  No records
+  Fetching school 12532... ⚠️  No records
+  Fetching school 12533... ⚠️  No records
+  Fetching school 12534... ⚠️  No records
+  Fetching school 12535... ⚠️  No records
+  Fetching school 12536... ⚠️  No records
+  Fetching school 12537... ⚠️  No records
+  Fetching school 12538... ⚠️  No records
+base) chris.cestari@M739WV0N94 meraki-webhook-streaming % cd /Users/chris.cestari/Documents/GitHub/sa-stuff
+python esd_period_attendance_fetcher.py
+
+🔑 Getting OAuth token...
+✅ Token obtained (expires in 3600s)
+
+📅 Date range: 1900-01-01 to 2025-12-10
+
+📚 Fetching schools...
+✅ Found 89 schools
+
+📊 Fetching period attendance (target: 5000 records, page size: 1000)...
+  Fetching school 12549... ⚠️  No records
+  Fetching school 12514... ⚠️  No records
+  Fetching school 12513... ⚠️  No records
+  Fetching school 12560... ⚠️  No records
+  Fetching school 12571... ⚠️  No records
+  Fetching school 12573... ⚠️  No records
+  Fetching school 12515... ⚠️  No records
+  Fetching school 12574... ⚠️  No records
+  Fetching school 12516... ⚠️  No records
+  Fetching school 12575... ⚠️  No records
+  Fetching school 12552... ⚠️  No records
+  Fetching school 12517... ⚠️  No records
+  Fetching school 12577... ⚠️  No records
+  Fetching school 12  Fetching school 12539... ⚠️  No records
+  Fetching school 12540... ⚠️  No records
+  Fetching school 12770... ⚠️  No records
+  Fetching school 12568... ⚠️  No records

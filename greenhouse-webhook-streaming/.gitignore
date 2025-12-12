@@ -1,0 +1,40 @@
+# Credentials
+credentials.yaml
+credentials.json
+*.pem
+*.key
+*_credentials.py
+.env
+.aws/
+
+# AWS
+*.zip
+lambda_deployment.zip
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# Logs
+*.log
+lambda_logs.txt
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data
+*.csv
+*.json.gz

@@ -1,0 +1,25 @@
+# Credentials
+credentials.yaml
+credentials.json
+*.pem
+*.key
+.env
+
+# AWS
+deployment_info.json
+
+# Python
+__pycache__/
+*.py[cod]
+venv/
+env/
+
+# Logs
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
